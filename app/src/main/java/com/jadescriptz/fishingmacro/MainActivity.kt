@@ -10,6 +10,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import java.lang.ref.WeakReference
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,10 +20,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPixelCoords: TextView
     private lateinit var tvTargetColor: TextView
     private lateinit var colorPreview: View
+    private lateinit var etPixelX: EditText
+    private lateinit var etPixelY: EditText
     private lateinit var etTolerance: EditText
     private lateinit var etDelay: EditText
     private lateinit var etCooldown: EditText
-    private lateinit var btnGetPixel: Button
     private lateinit var btnGetColor: Button
     private lateinit var btnNatural: Button
     private lateinit var btnStart: Button
@@ -37,15 +39,20 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        // Inregistreaza callback-ul pentru log-uri din WatcherService
+        WatcherService.activityRef = WeakReference(this)
+
+        projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE)
+            as MediaProjectionManager
 
         bindViews()
         setupListeners()
         checkAccessibility()
-        appendLog("🎣 FishingMacro gata.")
-        appendLog("Pas 1: Acorda permisiunea Accessibility Service.")
-        appendLog("Pas 2: Seteaza coordonatele si culoarea.")
-        appendLog("Pas 3: Apasa START si arunca undita.")
+
+        appendLog("🎣 FishingMacro Pro gata.")
+        appendLog("Pas 1: Activeaza Accessibility Service.")
+        appendLog("Pas 2: Introdu coordonatele X/Y ale bobber-ului.")
+        appendLog("Pas 3: Apasa 'Preia Culoarea', apoi START.")
     }
 
     private fun bindViews() {
@@ -53,10 +60,11 @@ class MainActivity : AppCompatActivity() {
         tvPixelCoords = findViewById(R.id.tvPixelCoords)
         tvTargetColor = findViewById(R.id.tvTargetColor)
         colorPreview  = findViewById(R.id.colorPreview)
+        etPixelX      = findViewById(R.id.etPixelX)
+        etPixelY      = findViewById(R.id.etPixelY)
         etTolerance   = findViewById(R.id.etTolerance)
         etDelay       = findViewById(R.id.etDelay)
         etCooldown    = findViewById(R.id.etCooldown)
-        btnGetPixel   = findViewById(R.id.btnGetPixel)
         btnGetColor   = findViewById(R.id.btnGetColor)
         btnNatural    = findViewById(R.id.btnNatural)
         btnStart      = findViewById(R.id.btnStart)
@@ -66,28 +74,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        btnGetPixel.setOnClickListener {
-            val x = WatcherService.lastTapX
-            val y = WatcherService.lastTapY
-            if (x >= 0 && y >= 0) {
-                tvPixelCoords.text = "Pixel: X=$x, Y=$y"
-                WatcherService.pixelX = x
-                WatcherService.pixelY = y
-                appendLog("✅ Coordonate setate: X=$x, Y=$y")
-                appendLog("Acum apasa 'Preia Culoarea'.")
-            } else {
-                appendLog("⚠ Atinge ecranul pe bobber pentru a captura coordonatele!")
-                tvPixelCoords.text = "Atinge bobber-ul pe ecran..."
-            }
-        }
 
+        // Seteaza coordonatele din campurile X/Y
         btnGetColor.setOnClickListener {
-            val x = WatcherService.pixelX
-            val y = WatcherService.pixelY
+            val x = etPixelX.text.toString().toIntOrNull() ?: -1
+            val y = etPixelY.text.toString().toIntOrNull() ?: -1
             if (x < 0 || y < 0) {
-                appendLog("⚠ Seteaza coordonatele mai intai!")
+                appendLog("⚠ Introdu coordonate X si Y valide mai intai!")
                 return@setOnClickListener
             }
+            WatcherService.pixelX = x
+            WatcherService.pixelY = y
+            tvPixelCoords.text = "Pixel setat: X=$x, Y=$y"
+            appendLog("📍 Pixel setat la X=$x, Y=$y")
+            appendLog("Captez culoarea... accepta permisiunea screen capture.")
             requestScreenCapture(forColor = true)
         }
 
@@ -108,11 +108,10 @@ class MainActivity : AppCompatActivity() {
         btnStart.setOnClickListener {
             if (!isAccessibilityEnabled()) {
                 appendLog("❌ Activeaza Accessibility Service mai intai!")
-                openAccessibilitySettings()
-                return@setOnClickListener
+                openAccessibilitySettings(); return@setOnClickListener
             }
             if (WatcherService.pixelX < 0 || WatcherService.pixelY < 0) {
-                appendLog("❌ Seteaza coordonatele pixelului mai intai!")
+                appendLog("❌ Seteaza coordonatele X/Y si preia culoarea mai intai!")
                 return@setOnClickListener
             }
             if (WatcherService.targetR < 0) {
@@ -131,21 +130,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applySettings() {
-        WatcherService.tolerance  = etTolerance.text.toString().toIntOrNull() ?: 15
+        WatcherService.tolerance     = etTolerance.text.toString().toIntOrNull() ?: 15
         WatcherService.reactionDelay = etDelay.text.toString().toLongOrNull() ?: 100L
-        WatcherService.cooldownMs = (etCooldown.text.toString().toFloatOrNull() ?: 3f) * 1000f
-        WatcherService.naturalMode = naturalMode
+        WatcherService.cooldownMs    = (etCooldown.text.toString().toFloatOrNull() ?: 3f) * 1000f
+        WatcherService.naturalMode   = naturalMode
     }
 
     private fun requestScreenCapture(forColor: Boolean) {
         WatcherService.captureForColor = forColor
-        val intent = projectionManager!!.createScreenCaptureIntent()
-        startActivityForResult(intent, PROJECTION_REQUEST)
+        startActivityForResult(
+            projectionManager!!.createScreenCaptureIntent(), PROJECTION_REQUEST)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == PROJECTION_REQUEST && resultCode == Activity.RESULT_OK && data != null) {
+        if (requestCode == PROJECTION_REQUEST &&
+            resultCode == Activity.RESULT_OK && data != null) {
+
             val serviceIntent = Intent(this, WatcherService::class.java).apply {
                 putExtra("resultCode", resultCode)
                 putExtra("data", data)
@@ -155,9 +156,8 @@ class MainActivity : AppCompatActivity() {
             if (!WatcherService.captureForColor) {
                 setUiRunning(true)
                 appendLog("▶ Macro pornit! Monitorez pixelul...")
-                appendLog("Stare: RESET — astept ca pixelul sa fie normal...")
             } else {
-                appendLog("📸 Capturez culoarea pixelului...")
+                appendLog("📸 Captez culoarea la (${WatcherService.pixelX}, ${WatcherService.pixelY})...")
             }
         }
     }
@@ -166,34 +166,30 @@ class MainActivity : AppCompatActivity() {
         val service = "${packageName}/${FishingAccessibilityService::class.java.canonicalName}"
         return try {
             val enabled = Settings.Secure.getString(
-                contentResolver,
-                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            ) ?: ""
+                contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
             enabled.contains(service)
-        } catch (e: Exception) {
-            false
-        }
+        } catch (e: Exception) { false }
     }
 
     private fun checkAccessibility() {
+        val btnAccess = findViewById<Button>(R.id.btnAccessibility)
         if (!isAccessibilityEnabled()) {
             tvStatus.text = "⚠ Accessibility Service inactiv"
             tvStatus.setTextColor(0xFFD29922.toInt())
-            appendLog("⚠ Accessibility Service nu e activ — apasa butonul de mai jos.")
-            val btnAccess = findViewById<Button>(R.id.btnAccessibility)
             btnAccess.visibility = View.VISIBLE
-            btnAccess.setOnClickListener { openAccessibilitySettings() }
+            btnAccess.setOnClickListener {
+                openAccessibilitySettings()
+                appendLog("→ Gaseste 'FishingMacro Pro' si activeaza-l.")
+            }
         } else {
-            tvStatus.text = "✅ Accessibility Service activ"
+            tvStatus.text = "✅ Accessibility activ"
             tvStatus.setTextColor(0xFF3FB950.toInt())
-            val btnAccess = findViewById<Button>(R.id.btnAccessibility)
             btnAccess.visibility = View.GONE
         }
     }
 
     private fun openAccessibilitySettings() {
         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        appendLog("→ Cauta 'FishingMacro' si activeaza-l.")
     }
 
     fun appendLog(msg: String) {
@@ -217,36 +213,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun onWatcherEvent(msg: String) {
-        runOnUiThread { appendLog(msg) }
-    }
-
     private fun setUiRunning(running: Boolean) {
-        btnStart.isEnabled = !running
-        btnStop.isEnabled  = running
-        btnGetPixel.isEnabled  = !running
-        btnGetColor.isEnabled  = !running
-        btnNatural.isEnabled   = !running
+        btnStart.isEnabled   = !running
+        btnStop.isEnabled    = running
+        btnGetColor.isEnabled = !running
+        btnNatural.isEnabled  = !running
         tvStatus.text = if (running) "● RUNNING" else "● OPRIT"
         tvStatus.setTextColor(
-            if (running) 0xFF3FB950.toInt() else 0xFF8B949E.toInt()
-        )
+            if (running) 0xFF3FB950.toInt() else 0xFF8B949E.toInt())
     }
 
     override fun onResume() {
         super.onResume()
+        WatcherService.activityRef = WeakReference(this)
         checkAccessibility()
+    }
 
-        // Refresh color/coord display from service state
-        if (WatcherService.pixelX >= 0)
-            tvPixelCoords.text = "Pixel: X=${WatcherService.pixelX}, Y=${WatcherService.pixelY}"
-        if (WatcherService.targetR >= 0) {
-            val r = WatcherService.targetR
-            val g = WatcherService.targetG
-            val b = WatcherService.targetB
-            tvTargetColor.text = "RGB($r,$g,$b)"
-            val color = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
-            colorPreview.setBackgroundColor(color)
-        }
+    override fun onDestroy() {
+        WatcherService.activityRef = null
+        super.onDestroy()
     }
 }

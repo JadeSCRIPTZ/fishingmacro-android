@@ -14,6 +14,7 @@ import android.os.*
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
+import java.lang.ref.WeakReference
 
 class WatcherService : Service() {
 
@@ -21,24 +22,33 @@ class WatcherService : Service() {
         const val CHANNEL_ID = "FishingMacroChannel"
         const val NOTIF_ID   = 1
 
-        // Shared state (accessed from MainActivity + worker thread)
         var pixelX        = -1
         var pixelY        = -1
         var targetR       = -1
         var targetG       = -1
         var targetB       = -1
         var tolerance     = 15
-        var reactionDelay = 100L   // ms
-        var cooldownMs    = 3000f  // ms
+        var reactionDelay = 100L
+        var cooldownMs    = 3000f
         var naturalMode   = false
         var captureForColor = false
 
-        var lastTapX = -1
-        var lastTapY = -1
-
         @Volatile var running = false
-
         fun stopWatcher() { running = false }
+
+        // Callback catre Activity (WeakReference pentru a nu face memory leak)
+        var activityRef: WeakReference<MainActivity>? = null
+
+        fun notifyActivity(msg: String) {
+            activityRef?.get()?.runOnUiThread {
+                activityRef?.get()?.appendLog(msg)
+            }
+        }
+        fun notifyColorCaptured(r: Int, g: Int, b: Int) {
+            activityRef?.get()?.runOnUiThread {
+                activityRef?.get()?.updateColorPreview(r, g, b)
+            }
+        }
     }
 
     private var mediaProjection: MediaProjection? = null
@@ -46,7 +56,6 @@ class WatcherService : Service() {
     private var virtualDisplay: VirtualDisplay? = null
     private var workerThread: HandlerThread? = null
     private var handler: Handler? = null
-
     private var screenWidth  = 0
     private var screenHeight = 0
     private var screenDensity = 0
@@ -68,10 +77,9 @@ class WatcherService : Service() {
 
         val resultCode = intent?.getIntExtra("resultCode", Activity.RESULT_CANCELED)
             ?: return START_NOT_STICKY
-        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            intent.getParcelableExtra("data", Intent::class.java)
-        else
-            @Suppress("DEPRECATION") intent.getParcelableExtra("data")
+
+        @Suppress("DEPRECATION")
+        val data: Intent? = intent.getParcelableExtra("data")
         data ?: return START_NOT_STICKY
 
         val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -81,8 +89,7 @@ class WatcherService : Service() {
             screenWidth, screenHeight, PixelFormat.RGBA_8888, 2)
 
         virtualDisplay = mediaProjection!!.createVirtualDisplay(
-            "FishingCapture",
-            screenWidth, screenHeight, screenDensity,
+            "FishingCapture", screenWidth, screenHeight, screenDensity,
             DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
             imageReader!!.surface, null, null)
 
@@ -90,37 +97,35 @@ class WatcherService : Service() {
         handler = Handler(workerThread!!.looper)
 
         if (captureForColor) {
-            handler!!.postDelayed({ captureColorOnce() }, 300)
+            handler!!.postDelayed({ captureColorOnce() }, 400)
         } else {
             running = true
             handler!!.post { watchLoop() }
         }
-
         return START_NOT_STICKY
     }
 
-    // ── Captura culoare o singura data ────────────────────────────────────────
+    // ── Captureaza culoarea o singura data ────────────────────────────────────
     private fun captureColorOnce() {
         val bmp = captureScreen() ?: run {
-            notifyMain("❌ Nu am putut captura ecranul.")
-            stopSelf()
-            return
+            notifyActivity("❌ Eroare la capturarea ecranului.")
+            stopSelf(); return
         }
-        val x = pixelX.coerceIn(0, bmp.width - 1)
+        val x = pixelX.coerceIn(0, bmp.width  - 1)
         val y = pixelY.coerceIn(0, bmp.height - 1)
         val pixel = bmp.getPixel(x, y)
         val r = (pixel shr 16) and 0xFF
         val g = (pixel shr 8)  and 0xFF
         val b =  pixel         and 0xFF
         bmp.recycle()
-        mainActivity()?.updateColorPreview(r, g, b)
+        notifyColorCaptured(r, g, b)
         stopSelf()
     }
 
-    // ── Loop principal de detectie ────────────────────────────────────────────
+    // ── Loop principal ────────────────────────────────────────────────────────
     private fun watchLoop() {
-        notifyMain("Stare: RESET — astept ca pixelul sa fie normal...")
-        var state = "RESET"
+        notifyActivity("Stare: RESET — astept ca pixelul sa fie normal...")
+        var state   = "RESET"
         var catches = 0
         var skipped = 0
 
@@ -129,7 +134,7 @@ class WatcherService : Service() {
                 val bmp = captureScreen()
                 if (bmp == null) { Thread.sleep(50); continue }
 
-                val x = pixelX.coerceIn(0, bmp.width - 1)
+                val x = pixelX.coerceIn(0, bmp.width  - 1)
                 val y = pixelY.coerceIn(0, bmp.height - 1)
                 val pixel = bmp.getPixel(x, y)
                 bmp.recycle()
@@ -137,7 +142,6 @@ class WatcherService : Service() {
                 val cr = (pixel shr 16) and 0xFF
                 val cg = (pixel shr 8)  and 0xFF
                 val cb =  pixel         and 0xFF
-
                 val isMatch = Math.abs(cr - targetR) <= tolerance &&
                               Math.abs(cg - targetG) <= tolerance &&
                               Math.abs(cb - targetB) <= tolerance
@@ -146,37 +150,35 @@ class WatcherService : Service() {
                     "RESET" -> {
                         if (!isMatch) {
                             state = "WATCH"
-                            notifyMain("Stare: WATCH — monitorizez bobberul...")
+                            notifyActivity("Stare: WATCH — monitorizez bobberul...")
                         }
                     }
                     "WATCH" -> {
                         if (isMatch) {
-                            // Mod natural: 8% sansa sa sara
+                            // Mod natural: 8% skip
                             if (naturalMode && Math.random() < 0.08) {
                                 skipped++
-                                notifyMain("[skip #$skipped] Mod natural — am sarit intentionat.")
+                                notifyActivity("[skip #$skipped] Mod natural — sarit intentionat.")
                                 state = "RESET"
                                 Thread.sleep(50)
                                 continue
                             }
-
                             catches++
-                            notifyMain("[#$catches] Bobber detectat! RGB($cr,$cg,$cb) — astept ${reactionDelay}ms...")
-
-                            // Delay de reactie
+                            notifyActivity("[#$catches] Bobber detectat! RGB($cr,$cg,$cb) — astept ${reactionDelay}ms...")
                             if (reactionDelay > 0) Thread.sleep(reactionDelay)
                             if (!running) break
 
-                            // Secventa fishing: right-click x2
-                            FishingAccessibilityService.instance?.performTap(pixelX.toFloat(), pixelY.toFloat())
+                            // Tap x2 (right-click echivalent pe Android)
+                            FishingAccessibilityService.instance?.performTap(
+                                pixelX.toFloat(), pixelY.toFloat())
                             Thread.sleep(500)
-                            FishingAccessibilityService.instance?.performTap(pixelX.toFloat(), pixelY.toFloat())
+                            FishingAccessibilityService.instance?.performTap(
+                                pixelX.toFloat(), pixelY.toFloat())
 
-                            notifyMain("[#$catches] Aruncat din nou! Cooldown ${cooldownMs.toLong()}ms...")
+                            notifyActivity("[#$catches] Re-aruncat! Cooldown ${cooldownMs.toLong()}ms...")
                             Thread.sleep(cooldownMs.toLong())
-
                             state = "RESET"
-                            notifyMain("Stare: RESET — astept resetare pixel...")
+                            notifyActivity("Stare: RESET — astept resetare pixel...")
                         }
                     }
                 }
@@ -184,22 +186,21 @@ class WatcherService : Service() {
             } catch (e: InterruptedException) {
                 break
             } catch (e: Exception) {
-                notifyMain("Eroare: ${e.message}")
+                notifyActivity("Eroare: ${e.message}")
                 break
             }
         }
-
         running = false
-        notifyMain("⏹ Watcher oprit.")
+        notifyActivity("⏹ Watcher oprit.")
         stopSelf()
     }
 
-    // ── Captureaza ecranul ca Bitmap ──────────────────────────────────────────
+    // ── Screenshot ────────────────────────────────────────────────────────────
     private fun captureScreen(): Bitmap? {
         return try {
             val image = imageReader?.acquireLatestImage() ?: return null
-            val planes = image.planes
-            val buffer = planes[0].buffer
+            val planes     = image.planes
+            val buffer     = planes[0].buffer
             val pixelStride = planes[0].pixelStride
             val rowStride   = planes[0].rowStride
             val rowPadding  = rowStride - pixelStride * screenWidth
@@ -210,23 +211,6 @@ class WatcherService : Service() {
             image.close()
             Bitmap.createBitmap(bmp, 0, 0, screenWidth, screenHeight)
                 .also { bmp.recycle() }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun notifyMain(msg: String) {
-        mainActivity()?.onWatcherEvent(msg)
-    }
-
-    private fun mainActivity(): MainActivity? {
-        return try {
-            val cls = Class.forName("com.jadescriptz.fishingmacro.MainActivity")
-            android.app.ActivityThread.currentApplication()
-                ?.let { app ->
-                    // Find the activity via reflection - simple approach
-                    null // We use broadcast instead
-                }
         } catch (e: Exception) { null }
     }
 
@@ -241,29 +225,25 @@ class WatcherService : Service() {
 
     override fun onBind(intent: Intent?) = null
 
-    // ── Notificare foreground ─────────────────────────────────────────────────
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID, "Fishing Macro",
+            val ch = NotificationChannel(CHANNEL_ID, "Fishing Macro",
                 NotificationManager.IMPORTANCE_LOW).apply {
                 description = "Pixel watcher activ"
             }
             (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
-                .createNotificationChannel(channel)
+                .createNotificationChannel(ch)
         }
     }
 
     private fun buildNotification(): Notification {
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE)
+        val pi = PendingIntent.getActivity(this, 0,
+            Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("FishingMacro Pro")
             .setContentText("Pixel watcher activ...")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(pi)
             .setOngoing(true)
             .build()
     }
