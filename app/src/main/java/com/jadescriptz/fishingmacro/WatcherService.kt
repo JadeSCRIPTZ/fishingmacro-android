@@ -78,8 +78,12 @@ class WatcherService : Service() {
         val resultCode = intent?.getIntExtra("resultCode", Activity.RESULT_CANCELED)
             ?: return START_NOT_STICKY
 
-        @Suppress("DEPRECATION")
-        val data: Intent? = intent.getParcelableExtra("data")
+        val data: Intent? = if (android.os.Build.VERSION.SDK_INT >= 33) {
+            intent.getParcelableExtra("data", Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra("data")
+        }
         data ?: return START_NOT_STICKY
 
         val mgr = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager

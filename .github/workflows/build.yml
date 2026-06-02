@@ -20,34 +20,20 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set SDK path
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-        continue-on-error: true
-
-      - name: Pick APK (signed or unsigned)
-        id: pick_apk
+      - name: Rename APK
         run: |
-          SIGNED=$(find app/build/outputs/apk/release -name "*-signed.apk" | head -1)
-          UNSIGNED=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
-          APK=${SIGNED:-$UNSIGNED}
+          APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
           cp "$APK" FishingMacroPro.apk
-          echo "apk=FishingMacroPro.apk" >> $GITHUB_OUTPUT
+          echo "APK: $APK"
 
       - name: Get date
         id: date
@@ -64,10 +50,9 @@ jobs:
             ### ⬇️ Instalare
             1. Descarca **FishingMacroPro.apk**
             2. Pe Android: **Setari → Securitate → Surse necunoscute → Activ**
-            3. Deschide APK-ul si instaleaza
-            4. Urmeaza instructiunile din aplicatie
+            3. Instaleaza si urmeaza pasii din aplicatie
 
-            ### Permisiuni necesare
-            - **Accessibility Service** — pentru tap-uri simulate
-            - **Screen Capture** — pentru detectia culorii pixelului
+            ### Cum gasesti coordonatele X/Y
+            Activeaza **Optiuni dezvoltator → Locatie pointer** pe telefon
+            si atinge bobber-ul — coordonatele apar in timp real.
           files: FishingMacroPro.apk
