@@ -1,0 +1,73 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Sign APK
+        uses: r0adkll/sign-android-release@v1
+        id: sign_app
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+          alias: ${{ secrets.KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        continue-on-error: true
+
+      - name: Pick APK (signed or unsigned)
+        id: pick_apk
+        run: |
+          SIGNED=$(find app/build/outputs/apk/release -name "*-signed.apk" | head -1)
+          UNSIGNED=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
+          APK=${SIGNED:-$UNSIGNED}
+          cp "$APK" FishingMacroPro.apk
+          echo "apk=FishingMacroPro.apk" >> $GITHUB_OUTPUT
+
+      - name: Get date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0-${{ steps.date.outputs.date }}
+          name: "FishingMacro Pro APK — ${{ steps.date.outputs.date }}"
+          body: |
+            ## 🎣 FishingMacro Pro pentru Android
+
+            ### ⬇️ Instalare
+            1. Descarca **FishingMacroPro.apk**
+            2. Pe Android: **Setari → Securitate → Surse necunoscute → Activ**
+            3. Deschide APK-ul si instaleaza
+            4. Urmeaza instructiunile din aplicatie
+
+            ### Permisiuni necesare
+            - **Accessibility Service** — pentru tap-uri simulate
+            - **Screen Capture** — pentru detectia culorii pixelului
+          files: FishingMacroPro.apk

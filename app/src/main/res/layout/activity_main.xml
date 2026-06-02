@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D1117"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Header -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🎣 FishingMacro Pro"
+                android:textColor="#58A6FF" android:textSize="20sp" android:textStyle="bold"
+                android:fontFamily="monospace"/>
+            <TextView android:id="@+id/tvStatus"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="● OPRIT" android:textColor="#8B949E"
+                android:textSize="12sp" android:fontFamily="monospace"/>
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#58A6FF" android:layout_marginBottom="16dp"/>
+
+        <!-- Accessibility button -->
+        <Button android:id="@+id/btnAccessibility"
+            android:layout_width="match_parent" android:layout_height="48dp"
+            android:text="⚠ ACTIVEAZA ACCESSIBILITY SERVICE"
+            android:textColor="#0D1117" android:backgroundTint="#D29922"
+            android:fontFamily="monospace" android:textStyle="bold"
+            android:layout_marginBottom="12dp" android:visibility="gone"/>
+
+        <!-- CARD: Coordonate -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="COORDONATE PIXEL" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="10dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="#161B22"
+            android:padding="12dp" android:layout_marginBottom="4dp">
+
+            <TextView android:id="@+id/tvPixelCoords"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Atinge bobber-ul pe ecran, apoi apasa butonul."
+                android:textColor="#8B949E" android:textSize="12sp"
+                android:fontFamily="monospace" android:layout_marginBottom="8dp"/>
+
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="💡 Atinge ecranul pe bobber → apasa 'Seteaza Pixel'"
+                android:textColor="#3FB950" android:textSize="11sp"
+                android:fontFamily="monospace" android:layout_marginBottom="8dp"/>
+
+            <Button android:id="@+id/btnGetPixel"
+                android:layout_width="match_parent" android:layout_height="44dp"
+                android:text="🖱 Seteaza Pixel (atinge bobber-ul)"
+                android:textColor="#0D1117" android:backgroundTint="#58A6FF"
+                android:fontFamily="monospace" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- CARD: Culoare -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="CULOARE TINTA" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginTop="16dp" android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="10dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="#161B22"
+            android:padding="12dp" android:layout_marginBottom="4dp">
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+                <View android:id="@+id/colorPreview"
+                    android:layout_width="40dp" android:layout_height="40dp"
+                    android:background="#FF0000" android:layout_marginEnd="12dp"/>
+                <TextView android:id="@+id/tvTargetColor"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Nicio culoare capturata"
+                    android:textColor="#8B949E" android:textSize="12sp"
+                    android:fontFamily="monospace"/>
+            </LinearLayout>
+
+            <Button android:id="@+id/btnGetColor"
+                android:layout_width="match_parent" android:layout_height="44dp"
+                android:text="🎨 Preia Culoarea Pixelului"
+                android:textColor="#0D1117" android:backgroundTint="#58A6FF"
+                android:fontFamily="monospace" android:textStyle="bold"/>
+        </LinearLayout>
+
+        <!-- CARD: Setari -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="SETARI DETECTIE" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginTop="16dp" android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="10dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:background="#161B22"
+            android:padding="12dp" android:layout_marginBottom="4dp">
+
+            <!-- Toleranta + Delay -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="12dp">
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Toleranta ±" android:textColor="#8B949E"
+                        android:textSize="11sp" android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp"/>
+                    <EditText android:id="@+id/etTolerance"
+                        android:layout_width="match_parent" android:layout_height="44dp"
+                        android:text="15" android:textColor="#E6EDF3"
+                        android:background="#0D1117" android:padding="8dp"
+                        android:inputType="number" android:fontFamily="monospace"
+                        android:gravity="center"/>
+                </LinearLayout>
+                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Delay reactie (ms)" android:textColor="#8B949E"
+                        android:textSize="11sp" android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp"/>
+                    <EditText android:id="@+id/etDelay"
+                        android:layout_width="match_parent" android:layout_height="44dp"
+                        android:text="100" android:textColor="#E6EDF3"
+                        android:background="#0D1117" android:padding="8dp"
+                        android:inputType="number" android:fontFamily="monospace"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Cooldown -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Cooldown dupa actiune (secunde)"
+                    android:textColor="#8B949E" android:textSize="11sp"
+                    android:fontFamily="monospace" android:layout_marginBottom="4dp"/>
+                <EditText android:id="@+id/etCooldown"
+                    android:layout_width="match_parent" android:layout_height="44dp"
+                    android:text="3.0" android:textColor="#E6EDF3"
+                    android:background="#0D1117" android:padding="8dp"
+                    android:inputType="numberDecimal" android:fontFamily="monospace"
+                    android:gravity="center"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- CARD: Mod Natural -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="MOD NATURAL (8% skip)" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginTop="16dp" android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="10dp"/>
+
+        <Button android:id="@+id/btnNatural"
+            android:layout_width="match_parent" android:layout_height="48dp"
+            android:text="🎲 MOD NATURAL: OFF"
+            android:textColor="#8B949E" android:backgroundTint="#30363D"
+            android:fontFamily="monospace" android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+
+        <!-- CARD: Control -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="CONTROL MACRO" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginTop="16dp" android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="10dp"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="16dp">
+            <Button android:id="@+id/btnStart"
+                android:layout_width="0dp" android:layout_height="52dp"
+                android:layout_weight="1" android:layout_marginEnd="8dp"
+                android:text="▶ START" android:textColor="#0D1117"
+                android:backgroundTint="#3FB950"
+                android:fontFamily="monospace" android:textStyle="bold"/>
+            <Button android:id="@+id/btnStop"
+                android:layout_width="0dp" android:layout_height="52dp"
+                android:layout_weight="1"
+                android:text="■ STOP" android:textColor="#FFFFFF"
+                android:backgroundTint="#F85149"
+                android:fontFamily="monospace" android:textStyle="bold"
+                android:enabled="false"/>
+        </LinearLayout>
+
+        <!-- Log -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="LOG ACTIVITATE" android:textColor="#58A6FF"
+            android:textSize="11sp" android:textStyle="bold" android:fontFamily="monospace"
+            android:layout_marginBottom="4dp"/>
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#30363D" android:layout_marginBottom="8dp"/>
+
+        <ScrollView android:id="@+id/scrollLog"
+            android:layout_width="match_parent" android:layout_height="220dp"
+            android:background="#0D1117">
+            <TextView android:id="@+id/tvLog"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="" android:textColor="#8B949E" android:textSize="11sp"
+                android:fontFamily="monospace" android:padding="8dp"
+                android:lineSpacingExtra="2dp"/>
+        </ScrollView>
+
+        <!-- Footer -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="⚠ Failsafe: apasa STOP inainte sa inchizi aplicatia"
+            android:textColor="#D29922" android:textSize="10sp"
+            android:fontFamily="monospace" android:gravity="center"
+            android:layout_marginTop="12dp" android:layout_marginBottom="8dp"/>
+
+    </LinearLayout>
+</ScrollView>

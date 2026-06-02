@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FishingMacro Pro</string>
+    <string name="accessibility_description">FishingMacro Pro foloseste Accessibility Service pentru a simula tap-uri pe ecran cand detecteaza culoarea bobber-ului.</string>
+</resources>
